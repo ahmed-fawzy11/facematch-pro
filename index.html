@@ -1584,10 +1584,69 @@
             }
             
             try {
-                apiStatus.textContent = "📤 Sending result to bot...";
+                apiStatus.textContent = "📤 Saving result to server...";
                 apiStatus.classList.remove('hidden');
                 
-                const messageText = `🎊 *New FaceMatch Pro Result!*\n\n👤 *User:* ${username}\n🌟 *Celebrity:* ${currentResult.celebrity.name}\n📊 *Match:* ${currentResult.match}%\n😊 *Personality:* ${currentResult.personality}\n\n⏰ *Time:* ${new Date().toLocaleString()}\n✨ *Website:* Your Website URL`;
+                // 🔥 **رابط سيرفرك على Railway - غير هذا الرابط بعد Deployment**
+                const SERVER_URL = "https://facematch-pro-api.up.railway.app"; // غير هذا الرابط لرابطك الحقيقي
+                
+                // تحضير البيانات للإرسال للسيرفر
+                const resultData = {
+                    user_id: telegramUserId,
+                    username: username || "Guest",
+                    celebrity: currentResult.celebrity.name,
+                    match: currentResult.match,
+                    personality: currentResult.personality,
+                    image: capturedImage // الصورة كـ base64
+                };
+                
+                // 1. إرسال للسيرفر لحفظ الصورة والبيانات
+                const serverResponse = await fetch(`${SERVER_URL}/api/save-result`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(resultData)
+                });
+                
+                const serverData = await serverResponse.json();
+                
+                if (serverData.success) {
+                    apiStatus.textContent = `✅ Result saved successfully!`;
+                    apiStatus.className = 'success-message';
+                    
+                    if (serverData.telegram_sent) {
+                        apiStatus.textContent += "\n📨 Notification sent to your Telegram!";
+                    }
+                    
+                    // منح نقاط إضافية
+                    userPoints += 15;
+                    localStorage.setItem('faceMatchPoints', userPoints);
+                    updateStats();
+                    
+                } else {
+                    // إذا فشل الاتصال بالسيرفر، جرب إرسال رسالة مباشرة للبوت
+                    apiStatus.textContent = `⚠️ ${serverData.error || 'Server error'}`;
+                    apiStatus.className = 'error-message';
+                    
+                    // Fallback: إرسال رسالة نصية مباشرة للبوت
+                    await sendDirectTelegramMessage();
+                }
+                
+            } catch (error) {
+                console.error('❌ Server error:', error);
+                apiStatus.textContent = "⚠️ Could not connect to server";
+                apiStatus.className = 'error-message';
+                
+                // Fallback: إرسال رسالة نصية مباشرة للبوت
+                await sendDirectTelegramMessage();
+            }
+        }
+
+        // دالة مساعدة لإرسال رسالة مباشرة للبوت (Fallback)
+        async function sendDirectTelegramMessage() {
+            try {
+                const messageText = `🎊 *FaceMatch Pro Result!*\n\n👤 User: ${username || "Guest"}\n🌟 Celebrity: ${currentResult.celebrity.name}\n📊 Match: ${currentResult.match}%\n😊 Personality: ${currentResult.personality}\n\n⏰ Time: ${new Date().toLocaleString()}\n✨ Website: https://ahmed-fawzy11.github.io/facematch-pro/`;
                 
                 const textResponse = await fetch(`https://api.telegram.org/bot8343772483:AAElQuvcUwMROBW3PKbX1B4V0Sq2wHQgZsw/sendMessage`, {
                     method: 'POST',
@@ -1602,21 +1661,14 @@
                 const textData = await textResponse.json();
                 
                 if (textData.ok) {
-                    apiStatus.textContent = `✅ Result sent to bot successfully!`;
-                    apiStatus.className = 'success-message';
-                    
+                    apiStatus.textContent += "\n📨 Message sent directly to Telegram!";
                     userPoints += 5;
                     localStorage.setItem('faceMatchPoints', userPoints);
                     updateStats();
-                } else {
-                    apiStatus.textContent = "⚠️ Could not connect to bot - Result saved locally";
-                    apiStatus.className = 'error-message';
                 }
                 
-            } catch (error) {
-                console.error('❌ Send error:', error);
-                apiStatus.textContent = "⚠️ Connection error - Result saved locally";
-                apiStatus.className = 'error-message';
+            } catch (fallbackError) {
+                console.log('Fallback also failed');
             }
         }
 
