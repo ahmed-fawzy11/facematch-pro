@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # توكن البوت
 BOT_TOKEN = "8343772483:AAElQuvcUwMROBW3PKbX1B4V0Sq2wHQgZsw"
 # رابط سيرفرك على Railway (عدله بعد ال deployment)
-API_SERVER = "https://facematch-pro-api.up.railway.app"
+API_SERVER = "https://facematch-pro-production.up.railway.app"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
